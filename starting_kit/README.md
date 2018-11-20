@@ -11,6 +11,8 @@ Usage:
 
 (1) If you are a challenge participant:
 
+- The three files sample_*_submission.zip are sample submissions ready to go!
+
 - The file README.ipynb contains step-by-step instructions on how to create a sample submission for the Iris challenge. 
 At the prompt type:
 jupyter-notebook README.ipynb
