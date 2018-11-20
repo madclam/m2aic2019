@@ -12,7 +12,9 @@ The zip file created can be uploaded to https://codalab.lri.fr/competitions/
 My Competitions > Competitions I'm running > Create competition
 
 Usage:
+
 	`cd starting_kit/utilities`
+	
 	`python make_bundle.py`
 
 There are 2 ways of running the script: 
