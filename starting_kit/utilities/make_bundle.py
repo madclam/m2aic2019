@@ -8,7 +8,7 @@
 
 # Script to make a competition bundle from a starting kit.
 # The following files should be provided in a directory "starting_kit"
-# Logo.jpg								# Your competition logo
+# logo.jpg								# Your competition logo
 # README.ipynb							# The notebook explaining how to make submissions
 # README.md								# A Readme file with basic explanations
 # ingestion_program/					# Code for ingestion of participant submissions				
@@ -16,10 +16,14 @@
 # sample_code_submission/				# Simple example of participant submission
 # sample_data/							# Small sample dataset (subset of the real training set)
 # challenge_data/						# Challenge data in AutoML split format
-# doc/									# HTML documentation pages
+# html_pages/							# HTML documentation pages
 
 # The code tests the "sample_code_submission" with the ingestion and scoring program
 # to verify that all works well and then compiles a challenge bundle.
+
+# Usage: 
+#		python make_bundle.py  
+#		python make_bundle.py starting_kit_dir big_data_dir
 
 import os, shutil
 import datetime
