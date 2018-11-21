@@ -31,14 +31,16 @@ from glob import glob as ls
 from sys import argv, version_info
 import zipfile
 
-# Recommended to keep verbose = True: shows various progression messages
-verbose = True
+# Check we are running the correct version of python
+if version_info < (3, 6):
+	print("Wrong Python version {}, use Python 3.6".format(version_info))
+	exit(0)
 
 class Bundle:
 	def __init__(self, starting_kit_dir, big_data_dir):
 		''' Defines a bundle structure.'''
 		# Starting kit template
-		self.starting_kit_files = ['README.md', 'README.ipynb', 'scoring_program', 'ingestion_program', 'sample_code_submission', 'sample_data', 'sample_code_submission.zip', 'sample_result_submission.zip', 'sample_trained_submission.zip']
+		self.starting_kit_files = ['README.md', 'README.ipynb', 'scoring_program', 'ingestion_program', 'sample_code_submission', 'sample_data']
 		self.starting_kit_dir = starting_kit_dir
 		# Data and code
 		self.big_data = big_data_dir
@@ -71,7 +73,7 @@ class Bundle:
 		print("    Checking starting kit structure:")
 		print('	{}'.format(self.starting_kit_files))
 		if actual_starting_kit_files & desired_starting_kit_file != desired_starting_kit_file:
-			print("[-] Failed, got:")
+			print("[-] Failed, some files are missing, got only these files:")
 			print('	{}'.format(actual_starting_kit_files))
 			return 0
 		else:
@@ -97,6 +99,14 @@ class Bundle:
 			data_dir = self.sample_data
 		command_ingestion = 'python {} {} {} {} {}'.format(path_ingestion, data_dir, self.sample_result_submission, self.ingestion_program, self.sample_code_submission)
 		os.system(command_ingestion)
+		# Check that predictions were made:
+		results = ls(os.path.join(starting_kit_dir, '*/*.predict'))
+		if len(results)!=3: 
+			print("[-] Failed, some prediction files are missing, got only:")
+			print('	{}'.format(results))
+			return 0
+		else:
+			print("[+] Passed")
 		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 		print("%% CHECKS %% 3/3 %% CHECKS %% 3/3 %% CHECKS %%")
 		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
@@ -104,16 +114,24 @@ class Bundle:
 		path_scoring = os.path.join(self.scoring_program, 'score.py')
 		command_scoring = 'python {} {} {} {}'.format(path_scoring, data_dir, self.sample_result_submission, self.scoring_output)
 		os.system(command_scoring)
-		return
+		# Check that scores were computed:
+		scores = ls(os.path.join(starting_kit_dir, '*/scores.*'))
+		if len(scores)!=2: 
+			print("[-] Failed, some score files are missing, got only:")
+			print('	{}'.format(scores))
+			return 0
+		else:
+			print("[+] Passed")
+		return execution_success
 	
 	def zip(self, destination):
 		''' Creates a zip file with everything needed to create a competition.'''
 		execution_success = 1
 		if not os.path.isfile(destination): os.mkdir(destination)
 		print("Creating bundle: {}.zip".format(destination))
-		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-		print("%% ZIP %% 1/3 %% ZIP %% 1/3 %% ZIPS %%")
-		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+		print("%% ZIP %% 1/3 %% ZIP %% 1/3 %% ZIP %%")
+		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 		# Zip relevant files and put them in destination
 		execution_success *= self.compress_code(self.scoring_program, destination)
 		execution_success *= self.compress_code(self.ingestion_program, destination)
@@ -129,14 +147,14 @@ class Bundle:
 		execution_success *= self.compress_sample_submission(self.sample_code_submission, 'sample_trained_submission')
 		execution_success *= self.compress_sample_submission(self.sample_result_submission, 'sample_result_submission')
 		# Add the starting kit
-		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-		print("%% ZIP %% 2/3 %% ZIP %% 2/3 %% ZIPS %%")
-		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+		print("%% ZIP %% 2/3 %% ZIP %% 2/3 %% ZIP %%")
+		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 		execution_success *= self.compress_starting_kit(destination)
 		# Zip the overall submission
-		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-		print("%% ZIP %% 3/3 %% ZIP %% 3/3 %% ZIPS %%")
-		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+		print("%% ZIP %% 3/3 %% ZIP %% 3/3 %% ZIP %%")
+		print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
 		execution_success *= self.compress_competition_bundle(destination)
 		return execution_success
     	   	
@@ -197,7 +215,8 @@ class Bundle:
 					z_ref1.write(file_name, filenm, compress_type=self.compression)
 				if filenm.find('test.solution')>=0:
 					#print('Add {} to ref2'.format(filenm))
-					z_ref2.write(file_name, filenm, compress_type=self.compression)  
+					z_ref2.write(file_name, filenm, compress_type=self.compression) 
+			self.starting_kit_files += ['sample_code_submission.zip', 'sample_result_submission.zip', 'sample_trained_submission.zip'] 
 			print('[+] Success')          	
 		except:
 			print('[-] An error occurred while zipping data files: ' + dir_name)
@@ -330,103 +349,92 @@ class Bundle:
 		[dirnm, filenm] = os.path.split(file_names[0])
 		lnm = filenm.split('_')
 		return lnm[0]
+
+#################################################
+# 					MAIN PROGRAM
+#################################################	
 		
 if __name__== "__main__":
-	execution_success = 1
-	purge_before_start = 1			# Remove old bundles 
+
+	# Purge a whole bunch of files before we start (choose which ones):
+	##############################################
+	clean_old_bundles = 1			# Remove old bundles 
 	clean_pyc = 1					# Remove old pyc
 	clean_pycache = 1				# Clear pycache
 	clean_readme = 1				# Remove old README.html
 	clean_pickle = 1				# delete model pickle
 	clean_results = 1				# delete prediction results
+	clean_scores = 1				# delete old scores
 	clean_submissions = 1			# delete old sample submissions
 	
-	# Check we are running the correct version of python
-	if version_info < (3, 6):
-		print("Wrong Python version {}, use Python 3.6".format(version_info))
-		exit(0)
-    
-    # Input directories:
+	def purge_files(list_name):
+		'''Remove files in list called list_name (list_name is a string) '''
+		file_list = eval(list_name)
+		if len(file_list)>0: 
+			print("[x] Removing {}: {}".format(list_name, file_list))
+			for file in file_list:
+				if os.path.isdir(file): 
+					shutil.rmtree(file)
+				else:
+					os.remove(file)	
+	
+	# Input directories:
+    ####################
 	if len(argv)==1:
 		starting_kit_dir = '../'
 		big_data_dir = ''
 	else:
 		starting_kit_dir = os.path.abspath(argv[1])
 		big_data_dir = os.path.abspath(argv[2])
-	if verbose: 
-		print("Using starting_kit_dir: " + starting_kit_dir)
-		if big_data_dir: print("Using big_data_dir: " + big_data_dir)
-
-	# Remove old bundles
-	if purge_before_start:
-		old_bundles = ls('*_bundle_*')
-		if old_bundles: 
-			print("Removing old bundles: {}".format(old_bundles))
-			for file in old_bundles:
-				if os.path.isdir(file): 
-					shutil.rmtree(file)
-				else:
-					os.remove(file)
-	
-	# Remove old pyc files
-	if clean_pyc:
-		old_pyc = ls(os.path.join(starting_kit_dir, '*/*.pyc'))
-		if old_pyc: 
-			print("Removing old pyc: {}".format(old_pyc))
-			for file in old_pyc:
-				os.remove(file)
-			
-	# Remove old pycache
-	if clean_pycache:
-		old_pycache = ls(os.path.join(starting_kit_dir, '*/__pycache__'))
-		if old_pycache: 
-			print("Removing old pycache: {}".format(old_pycache))
-			for file in old_pycache:
-				shutil.rmtree(file)
-				
-	# Remove old readme
-	if clean_readme:
-		old_readme = ls(os.path.join(starting_kit_dir, '*/README.html'))
-		if old_readme: 
-			print("Removing old README: {}".format(old_readme))
-			for file in old_readme:
-				os.remove(file)
-				
-	# Remove old pickle
-	if clean_pickle:
-		old_pickle = ls(os.path.join(starting_kit_dir, '*/*.pickle'))
-		if old_pickle: 
-			print("Removing old pickle: {}".format(old_pickle))
-			for file in old_pickle:
-				os.remove(file)
-				
-	# Remove old results
-	if clean_results:
-		old_results = ls(os.path.join(starting_kit_dir, '*/*.predict'))
-		if old_results: 
-			print("Removing old results: {}".format(old_results))
-			for file in old_results:
-				os.remove(file)	
-
-	# Remove old submissions
-	if clean_submissions:
-		old_submissions = ls(os.path.join(starting_kit_dir, '*/*_submission.zip'))
-		if old_submissions: 
-			print("Removing old submissions: {}".format(old_submissions))
-			for file in old_results:
-				os.remove(file)	
-				
-	##### THE REAL STUFF STARTS HERE
-	# Bundle object creation and checks
+		
+	# Bundle object creation and checks: 
+	####################################
 	my_bundle = Bundle(starting_kit_dir, big_data_dir)
-	my_bundle.check()
-    
-	# Output directory:
+	
 	data_name = my_bundle.get_data_name()
 	the_date = datetime.datetime.now().strftime('%y-%m-%d-%H-%M')
 	destination = data_name + '_bundle_' + the_date
+		
+	print("\n\n##############################################################")
+	print("##############################################################")
+	print("#\n#       Processing bundle : {}       #\n#".format(destination))
+	print("##############################################################")
+	print("##############################################################")
+	print("\nUsing starting_kit_dir: {}".format(starting_kit_dir))
+	if big_data_dir: print("Using big_data_dir: {}\n".format(big_data_dir))
 	
-    # Zipping the bundle:
+	# Proceed to purge:	
+	if clean_old_bundles:
+		old_bundles = ls('*_bundle_*')
+		purge_files('old_bundles')
+	if clean_pyc:
+		old_pyc = ls(os.path.join(starting_kit_dir, '*/*.pyc'))
+		purge_files('old_pyc')
+	if clean_pycache:
+		old_pycache = ls(os.path.join(starting_kit_dir, '*/__pycache__'))
+		purge_files('old_pycache')
+	if clean_readme:
+		old_readme = ls(os.path.join(starting_kit_dir, '*/README.html'))
+		purge_files('old_readme')
+	if clean_pickle:
+		old_pickle = ls(os.path.join(starting_kit_dir, '*/*.pickle'))
+		purge_files('old_pickle')
+	if clean_results:
+		old_results = ls(os.path.join(starting_kit_dir, '*/*.predict'))
+		purge_files('old_results')
+	if clean_results:
+		old_scores = ls(os.path.join(starting_kit_dir, '*/scores.*'))
+		purge_files('old_scores')
+	if clean_submissions:
+		old_submissions = ls(os.path.join(starting_kit_dir, '*_submission.zip'))
+		purge_files('old_submissions')	
+						
+	# Perform a sanity check:
+	if not my_bundle.check():
+		print('[-] Something went wrong, sorry, try again!!')
+		exit(0)
+	
+    # Zip the bundle:
 	execution_success = my_bundle.zip(destination)
 	
 	if execution_success:
