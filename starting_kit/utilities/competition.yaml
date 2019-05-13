@@ -2,9 +2,9 @@
 
 # DO NOT MODIFY
 
-# Isabelle Guyon -- November 19, 2018
+# Isabelle Guyon -- May 13, 2019
 
-title: Sample competition
+title: Sample Competition  
 description: Sample competition M2AIC 2018-2019
 image: logo.jpg
 has_registration: False                 # We do not check participants, registration is free
@@ -44,7 +44,7 @@ phases:
     phasenumber: 2
     label: Final Phase
     description: 'Final phase (no submission, your last submission from the previous phase is automatically forwarded).'
-    start_date: 2019-04-30
+    start_date: 2050-04-30
     is_scoring_only: False 
     execution_time_limit: 300
     max_submissions_per_day: 5  
