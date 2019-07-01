@@ -13,12 +13,19 @@ My Competitions > Competitions I'm running > Create competition
 
 Usage:
 
-	`cd starting_kit/utilities`
+```bash
+cd starting_kit/utilities
+
+# Install requirements (numpy, pandas, etc.) if you don't have them already
+pip install -r requirements.txt
 	
-	`python make_bundle.py`
+python make_bundle.py
+```
 
 There are 2 ways of running the script: 
 + with sample data found in the starting kit or 
 + with the real "big" dataset. In this case run:
 
-	`python make_bundle.py starting_kit_dir big_data_dir`
+```bash
+python make_bundle.py starting_kit_dir big_data_dir
+```
