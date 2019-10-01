@@ -3,15 +3,15 @@
 # Scoring program for the AutoML challenge
 # Isabelle Guyon and Arthur Pesah, ChaLearn, August 2014-November 2016
 
-# ALL INFORMATION, SOFTWARE, DOCUMENTATION, AND DATA ARE PROVIDED "AS-IS". 
+# ALL INFORMATION, SOFTWARE, DOCUMENTATION, AND DATA ARE PROVIDED "AS-IS".
 # ISABELLE GUYON, CHALEARN, AND/OR OTHER ORGANIZERS OR CODE AUTHORS DISCLAIM
 # ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR ANY PARTICULAR PURPOSE, AND THE
-# WARRANTY OF NON-INFRINGEMENT OF ANY THIRD PARTY'S INTELLECTUAL PROPERTY RIGHTS. 
-# IN NO EVENT SHALL ISABELLE GUYON AND/OR OTHER ORGANIZERS BE LIABLE FOR ANY SPECIAL, 
+# WARRANTY OF NON-INFRINGEMENT OF ANY THIRD PARTY'S INTELLECTUAL PROPERTY RIGHTS.
+# IN NO EVENT SHALL ISABELLE GUYON AND/OR OTHER ORGANIZERS BE LIABLE FOR ANY SPECIAL,
 # INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER ARISING OUT OF OR IN
-# CONNECTION WITH THE USE OR PERFORMANCE OF SOFTWARE, DOCUMENTS, MATERIALS, 
-# PUBLICATIONS, OR INFORMATION MADE AVAILABLE FOR THE CHALLENGE. 
+# CONNECTION WITH THE USE OR PERFORMANCE OF SOFTWARE, DOCUMENTS, MATERIALS,
+# PUBLICATIONS, OR INFORMATION MADE AVAILABLE FOR THE CHALLENGE.
 
 # Some libraries and options
 import os
@@ -19,6 +19,7 @@ from sys import argv
 
 import libscores
 import my_metric
+import sklearn.metrics as metrics
 import yaml
 from libscores import *
 
@@ -37,6 +38,23 @@ missing_score = -0.999999
 # Version number
 scoring_version = 1.0
 
+def _HERE(*args):
+    h = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(h, *args)
+
+def get_metric():
+    ''' Identifies a metric called name by searching first in metric.txt, then in  '''
+    with open(_HERE('metric.txt'), 'r') as f:
+        metric_name = f.readline().strip()
+    try:
+    	scoring_function = getattr(my_metric, metric_name)
+    except:
+    	try:
+    		scoring_function = getattr(libscores, metric_name)
+    	except:
+    		scoring_function = getattr(metrics, metric_name)
+    return metric_name, scoring_function
+
 # =============================== MAIN ========================================
 
 if __name__ == "__main__":
@@ -54,10 +72,10 @@ if __name__ == "__main__":
         solution_dir = argv[1]
         prediction_dir = argv[2]
         score_dir = argv[3]
-    else: 
+    else:
         swrite('\n*** WRONG NUMBER OF ARGUMENTS ***\n\n')
         exit(1)
-        
+
     # Create the output directory, if it does not already exist and open output files
     mkdir(score_dir)
     score_file = open(os.path.join(score_dir, 'scores.txt'), 'w')
@@ -76,7 +94,6 @@ if __name__ == "__main__":
 
         # Extract the dataset name from the file name
         basename = solution_file[-solution_file[::-1].index(filesep):-solution_file[::-1].index('.') - 1]
-
         try:
             # Get the last prediction from the res subdirectory (must end with '.predict')
             predict_file = ls(os.path.join(prediction_dir, basename + '*.predict'))[-1]
@@ -85,13 +102,13 @@ if __name__ == "__main__":
             # Read the solution and prediction values into numpy arrays
             solution = read_array(solution_file)
             prediction = read_array(predict_file)
-            if (solution.shape != prediction.shape): 
-            	solution = convert_to_num(solution) 
-            if (solution.shape != prediction.shape): 	
+            if (solution.shape != prediction.shape):
+            	solution = convert_to_num(solution)
+            if (solution.shape != prediction.shape):
             	raise ValueError("Prediction shape={} instead of Solution shape={}".format(prediction.shape, solution.shape))
 
             try:
-                # Compute the score prescribed by the metric file 
+                # Compute the score prescribed by the metric file
                 score = scoring_function(solution, prediction)
                 print(
                     "======= Set %d" % set_num + " (" + predict_name.capitalize() + "): " + metric_name + "(" + score_name + ")=%0.12f =======" % score)
